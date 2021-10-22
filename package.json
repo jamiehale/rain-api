@@ -5,7 +5,15 @@
   "author": "Jamie Hale <jamiesonhale@gmail.com>",
   "license": "MIT",
   "scripts": {
-    "start": "./node_modules/.bin/babel-node ./src/index.js"
+    "lint": "eslint ./src",
+    "start": "./node_modules/.bin/babel-node ./src/index.js",
+    "start:dev": "nodemon --delay 1500ms --exec babel-node ./src/index.js",
+    "db:migrate": "knex --esm migrate:latest",
+    "db:rollback": "knex --esm migrate:rollback",
+    "docker:db": "docker-compose run db psql -h db -U rain_api -d rain",
+    "docker:db:migrate": "docker-compose run api yarn db:migrate",
+    "docker:db:purge": "rm -rf var/db",
+    "docker:build:migrate": "DOCKER_BUILDKIT=1 docker build -f Dockerfile.migrate -t rain/api-migrate:latest ."
   },
   "dependencies": {
     "@babel/cli": "^7.15.7",
@@ -23,6 +31,9 @@
     "ramda": "^0.27.1"
   },
   "devDependencies": {
-    "@babel/node": "^7.15.8"
+    "@babel/node": "^7.15.8",
+    "@babel/register": "^7.15.3",
+    "eslint": "^8.0.1",
+    "nodemon": "^2.0.14"
   }
 }

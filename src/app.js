@@ -34,7 +34,7 @@ const createApp = (context) => {
     next(err);
   });
 
-  app.use((err, req, res, next) => {
+  app.use((err, req, res, next) => { // eslint-disable-line no-unused-vars
     let status = 500;
     if (R.has('status', err)) {
       status = err.status;

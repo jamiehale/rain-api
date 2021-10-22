@@ -1,0 +1,29 @@
+version: "3.9"
+services:
+  api:
+    build: .
+    container_name: api
+    volumes:
+      - .:/usr/src/app
+    ports:
+      - 8080:8080
+    command:
+      - yarn
+      - start:dev
+    environment:
+      DB_HOST: db
+      DB_USER: rain_api
+      DB_PASSWORD: rain
+      DB_DATABASE: rain
+  db:
+    image: postgres:13
+    container_name: db
+    environment:
+      POSTGRES_PASSWORD: rain
+      PGDATA: /var/lib/postgresql/data/pgdata
+    ports:
+      - 5432:5432
+    volumes:
+      - ./var/db:/var/lib/postgresql/data/pgdata
+      - ./etc/db:/docker-entrypoint-initdb.d
+

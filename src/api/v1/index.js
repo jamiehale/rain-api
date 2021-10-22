@@ -1,7 +1,6 @@
 import { Router } from 'express';
-import * as R from 'ramda';
 
-const get = (context) => (req, res, next) => {
+const get = () => (req, res) => {
   res.json([
     { yay: 'hells yes' },
   ]);

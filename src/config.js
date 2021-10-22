@@ -1,3 +1,4 @@
+import process from 'process';
 import { config } from 'dotenv';
 import * as R from 'ramda';
 
