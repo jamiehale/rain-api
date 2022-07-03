@@ -71,10 +71,24 @@ export const up = (knex) =>
       table.foreign('parent_id').references('tasks.id');
       table.foreign('user_id').references('users.id');
       table.foreign('inbox_item_id').references('inbox_items.id');
+    })
+
+    .createTable('notes', (table) => {
+      table.uuid('id').primary().defaultTo(knex.raw('uuid_generate_v4()'));
+      table.string('name').notNullable();
+      table.string('body').notNullable();
+      table.uuid('user_id').notNullable();
+      table.uuid('inbox_item_id');
+      table.timestamp('created_at').defaultTo(knex.fn.now());
+      table.timestamp('updated_at').defaultTo(knex.fn.now());
+
+      table.foreign('user_id').references('users.id');
+      table.foreign('inbox_item_id').references('inbox_items.id');
     });
 
 export const down = (knex) =>
   knex.schema
+    .dropTableIfExists('notes')
     .dropTableIfExists('tasks')
     .dropTableIfExists('inbox_items')
     .dropTableIfExists('refresh_tokens')
