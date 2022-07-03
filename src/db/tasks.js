@@ -9,14 +9,9 @@ const toTask = {
   due: R.prop('due'),
   parentId: R.prop('parent_id'),
   userId: R.prop('user_id'),
+  done: R.prop('done'),
   createdAt: R.prop('created_at'),
   updatedAt: R.prop('updated_at'),
-};
-
-const toTaskDetails = {
-  ...toTask,
-  state: R.prop('state'),
-  stateUpdatedAt: R.prop('state_updated_at'),
 };
 
 const toTaskRecord = {
@@ -24,19 +19,20 @@ const toTaskRecord = {
   description: R.prop('description'),
   due: R.prop('due'),
   parent_id: R.prop('parentId'),
+  done: R.prop('done'),
 };
 
 const load = (db) => (userId, id) =>
-  db('task_details')
+  db('tasks')
     .where('user_id', userId)
     .andWhere('id', id)
     .first()
-    .then(whenNotNil(evolveModel(toTaskDetails)));
+    .then(whenNotNil(evolveModel(toTask)));
 
 const loadAll = (db) => (userId) =>
-  db('task_details')
+  db('tasks')
     .where('user_id', userId)
-    .then(R.map(evolveModel(toTaskDetails)));
+    .then(R.map(evolveModel(toTask)));
 
 const create = (db) => (userId, fields) =>
   db('tasks')
@@ -48,8 +44,21 @@ const create = (db) => (userId, fields) =>
     .then(R.head)
     .then(evolveModel(toTask));
 
+const update = (db) => (userId, id, fields) =>
+  db('tasks')
+    .where('user_id', userId)
+    .andWhere('id', id)
+    .update({
+      ...evolveModel(toTaskRecord, fields),
+      updated_at: db.fn.now(),
+    })
+    .returning('*')
+    .then(R.head)
+    .then(whenNotNil(evolveModel(toTask)));
+
 export const tasksRepository = (db) => ({
   load: load(db),
   loadAll: loadAll(db),
   create: create(db),
+  update: update(db),
 });

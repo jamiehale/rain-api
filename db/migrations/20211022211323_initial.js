@@ -1,5 +1,3 @@
-import { importSql } from './support';
-
 export const up = (knex) =>
   knex.schema
 
@@ -53,28 +51,18 @@ export const up = (knex) =>
       table.date('due');
       table.uuid('parent_id');
       table.uuid('user_id').notNullable();
+      table.boolean('done').notNullable().defaultTo(false);
       table.timestamp('created_at').defaultTo(knex.fn.now());
       table.timestamp('updated_at').defaultTo(knex.fn.now());
 
       table.foreign('parent_id').references('tasks.id');
       table.foreign('user_id').references('users.id');
-    })
-
-    .createTable('task_state_changes', (table) => {
-      table.uuid('task_id').notNullable();
-      table.string('state').notNullable();
-      table.timestamp('created_at').defaultTo(knex.fn.now());
-
-      table.foreign('task_id').references('tasks.id');
-    })
-
-    .raw(importSql('20211022211323', 'task_details'));
+    });
 
 export const down = (knex) =>
   knex.schema
-    .raw('DROP VIEW IF EXISTS task_details')
-    .dropTableIfExists('task_state_changes')
     .dropTableIfExists('tasks')
+    .dropTableIfExists('refresh_tokens')
     .dropTableIfExists('local_accounts')
     .dropTableIfExists('user_apps')
     .dropTableIfExists('users');

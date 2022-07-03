@@ -10,6 +10,5 @@ module.exports = {
   },
   rules: {
     'max-len': 0,
-    'prettier/prettier': 'error',
   },
 };

@@ -2,23 +2,15 @@ import { Router } from 'express';
 import Joi from 'joi';
 import * as R from 'ramda';
 import { withTransaction } from '../../db/atomic';
-import { taskStateChangesRepository } from '../../db/task-state-changes';
 import { tasksRepository } from '../../db/tasks';
 import { authorized } from '../../middleware/authorization';
 import { validated } from '../../middleware/validation';
 import { HttpError } from '../../util/errors';
-import { passThrough, throwIfNil } from '../../util/fp';
+import { toJsonPayload } from '../../util/express';
+import { throwIfNil } from '../../util/fp';
 
 const post = (context) => (req, res) =>
-  withTransaction(context.db, (txn) =>
-    tasksRepository(txn)
-      .create(res.locals.user.id, res.locals.validatedBody)
-      .then(passThrough((task) => taskStateChangesRepository(txn).create({ taskId: task.id, state: 'pending' })))
-      .then((task) => tasksRepository(txn).load(res.locals.user.id, task.id))
-      .then((task) => {
-        res.json(task);
-      }),
-  );
+  withTransaction(context.db, (txn) => tasksRepository(txn).create(res.locals.user.id, res.locals.validatedBody).then(toJsonPayload(res)));
 
 const getList = (context) => (req, res) =>
   tasksRepository(context.db)
@@ -36,21 +28,10 @@ const get = (context) => (req, res) =>
     });
 
 const patch = (context) => (req, res) =>
-  withTransaction(context.db, (txn) =>
-    tasksRepository(txn)
-      .load(res.locals.user.id, res.locals.validatedParams.id)
-      .then(
-        passThrough((task) => {
-          if (res.locals.validatedBody.state && task.state !== res.locals.validatedBody.state) {
-            return taskStateChangesRepository(txn).create({ taskId: task.id, state: res.locals.validatedBody.state });
-          }
-        }),
-      )
-      .then((task) => tasksRepository(txn).load(res.locals.user.id, task.id))
-      .then((task) => {
-        res.json(task);
-      }),
-  );
+  tasksRepository(context.db)
+    .update(res.locals.user.id, res.locals.validatedParams.id, res.locals.validatedBody)
+    .then(throwIfNil(() => new HttpError('Not found', 404)))
+    .then(toJsonPayload(res));
 
 const newTaskSchema = Joi.object({
   name: Joi.string().required(),
@@ -60,7 +41,7 @@ const newTaskSchema = Joi.object({
 });
 
 const updatedTaskSchema = Joi.object({
-  state: Joi.valid('pending', 'done'),
+  done: Joi.boolean(),
 });
 
 const taskIdSchema = Joi.object({
