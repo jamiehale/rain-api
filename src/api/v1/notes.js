@@ -20,23 +20,23 @@ const updateInboxItem = (txn, userId, inboxItemId, status) => {
 
 const post = (context) => (req, res) =>
   withTransaction(context.db, (txn) =>
-    updateInboxItem(txn, res.locals.user.id, res.locals.validatedBody.inboxItemId, 'processed')
-      .then(() => notesRepository(txn).create(res.locals.user.id, res.locals.validatedBody))
+    updateInboxItem(txn, res.locals.userId, res.locals.validatedBody.inboxItemId, 'processed')
+      .then(() => notesRepository(txn).create(res.locals.userId, res.locals.validatedBody))
       .then(toJsonPayload(res)),
   );
 
 const getList = (context) => (req, res) =>
-  notesRepository(context.db).loadAll(res.locals.user.id, { order: 'createdAt' }).then(toJsonPayload(res));
+  notesRepository(context.db).loadAll(res.locals.userId, { order: 'createdAt' }).then(toJsonPayload(res));
 
 const get = (context) => (req, res) =>
   notesRepository(context.db)
-    .load(res.locals.user.id, res.locals.validatedParams.id)
+    .load(res.locals.userId, res.locals.validatedParams.id)
     .then(throwIfNil(() => new HttpError('Not found', 404)))
     .then(toJsonPayload(res));
 
 const patch = (context) => (req, res) =>
   notesRepository(context.db)
-    .update(res.locals.user.id, res.locals.validatedParams.id, res.locals.validatedBody)
+    .update(res.locals.userId, res.locals.validatedParams.id, res.locals.validatedBody)
     .then(throwIfNil(() => new HttpError('Not found', 404)))
     .then(toJsonPayload(res));
 
@@ -56,7 +56,7 @@ const noteIdSchema = Joi.object({
 });
 
 const noteReadableBy = (noteIdFn) => (context, req, res) =>
-  notesRepository(context.db).load(res.locals.user.id, noteIdFn(req, res)).then(R.complement(R.isNil));
+  notesRepository(context.db).load(res.locals.userId, noteIdFn(req, res)).then(R.complement(R.isNil));
 
 export default (context) => {
   const routes = Router();

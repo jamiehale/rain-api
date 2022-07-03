@@ -25,25 +25,15 @@ export const authenticated = (context) => async (req, res, next) => {
 
     const userApp = await userAppsRepository(context.db).loadByKey(token);
     if (!R.isNil(userApp)) {
-      usersRepository(context.db)
-        .load(userApp.userId)
-        .then((user) => {
-          res.locals.user = user;
-          next();
-        });
+      res.locals.userId = userApp.userId;
+      next();
     } else {
       jwt.verify(token, context.config.jwtSecret, (error, payload) => {
         if (error) {
           throw new HttpError(error.toString(), 401);
         }
-        usersRepository(context.db)
-          .load(payload.userId)
-          .then(throwIfNil(() => new HttpError('Invalid user', 401)))
-          .then((user) => {
-            res.locals.user = user;
-            next();
-          })
-          .catch(next);
+        res.locals.userId = payload.userId;
+        next();
       });
     }
   } catch (error) {

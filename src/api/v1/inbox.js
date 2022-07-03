@@ -5,11 +5,11 @@ import { validated } from '../../middleware/validation';
 import { toJsonPayload } from '../../util/express';
 
 const post = (context) => (req, res) =>
-  inboxItemsRepository(context.db).create(res.locals.user.id, res.locals.validatedBody).then(toJsonPayload(res));
+  inboxItemsRepository(context.db).create(res.locals.userId, res.locals.validatedBody).then(toJsonPayload(res));
 
 const getList = (context) => (req, res) =>
   inboxItemsRepository(context.db)
-    .loadAll(res.locals.user.id, { order: 'createdAt', filter: { status: 'pending' } })
+    .loadAll(res.locals.userId, { order: 'createdAt', filter: { status: 'pending' } })
     .then(toJsonPayload(res));
 
 const newInboxItemSchema = Joi.object({

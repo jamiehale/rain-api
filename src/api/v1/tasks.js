@@ -21,22 +21,22 @@ const updateInboxItem = (txn, userId, inboxItemId, status) => {
 
 const post = (context) => (req, res) =>
   withTransaction(context.db, (txn) =>
-    updateInboxItem(txn, res.locals.user.id, res.locals.validatedBody.inboxItemId, 'processed')
-      .then(() => tasksRepository(txn).create(res.locals.user.id, res.locals.validatedBody))
+    updateInboxItem(txn, res.locals.userId, res.locals.validatedBody.inboxItemId, 'processed')
+      .then(() => tasksRepository(txn).create(res.locals.userId, res.locals.validatedBody))
       .then(toJsonPayload(res)),
   );
 
-const getList = (context) => (req, res) => tasksRepository(context.db).loadAll(res.locals.user.id).then(toJsonPayload(res));
+const getList = (context) => (req, res) => tasksRepository(context.db).loadAll(res.locals.userId).then(toJsonPayload(res));
 
 const get = (context) => (req, res) =>
   tasksRepository(context.db)
-    .load(res.locals.user.id, res.locals.validatedParams.id)
+    .load(res.locals.userId, res.locals.validatedParams.id)
     .then(throwIfNil(() => new HttpError('Not found', 404)))
     .then(toJsonPayload(res));
 
 const patch = (context) => (req, res) =>
   tasksRepository(context.db)
-    .update(res.locals.user.id, res.locals.validatedParams.id, res.locals.validatedBody)
+    .update(res.locals.userId, res.locals.validatedParams.id, res.locals.validatedBody)
     .then(throwIfNil(() => new HttpError('Not found', 404)))
     .then(toJsonPayload(res));
 
@@ -57,7 +57,7 @@ const taskIdSchema = Joi.object({
 });
 
 const taskReadableBy = (taskIdFn) => (context, req, res) =>
-  tasksRepository(context.db).load(res.locals.user.id, taskIdFn(req, res)).then(R.complement(R.isNil));
+  tasksRepository(context.db).load(res.locals.userId, taskIdFn(req, res)).then(R.complement(R.isNil));
 
 export default (context) => {
   const routes = Router();
