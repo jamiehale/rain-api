@@ -44,6 +44,17 @@ export const up = (knex) =>
       table.index('user_id');
     })
 
+    .createTable('inbox', (table) => {
+      table.uuid('id').primary().defaultTo(knex.raw('uuid_generate_v4()'));
+      table.string('name').notNullable();
+      table.string('description');
+      table.uuid('user_id').notNullable();
+      table.timestamp('created_at').defaultTo(knex.fn.now());
+      table.timestamp('updated_at').defaultTo(knex.fn.now());
+
+      table.foreign('user_id').references('users.id');
+    })
+
     .createTable('tasks', (table) => {
       table.uuid('id').primary().defaultTo(knex.raw('uuid_generate_v4()'));
       table.string('name').notNullable();
@@ -62,6 +73,7 @@ export const up = (knex) =>
 export const down = (knex) =>
   knex.schema
     .dropTableIfExists('tasks')
+    .dropTableIfExists('inbox')
     .dropTableIfExists('refresh_tokens')
     .dropTableIfExists('local_accounts')
     .dropTableIfExists('user_apps')

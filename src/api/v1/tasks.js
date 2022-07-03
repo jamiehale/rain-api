@@ -1,7 +1,6 @@
 import { Router } from 'express';
 import Joi from 'joi';
 import * as R from 'ramda';
-import { withTransaction } from '../../db/atomic';
 import { tasksRepository } from '../../db/tasks';
 import { authorized } from '../../middleware/authorization';
 import { validated } from '../../middleware/validation';
@@ -10,22 +9,15 @@ import { toJsonPayload } from '../../util/express';
 import { throwIfNil } from '../../util/fp';
 
 const post = (context) => (req, res) =>
-  withTransaction(context.db, (txn) => tasksRepository(txn).create(res.locals.user.id, res.locals.validatedBody).then(toJsonPayload(res)));
+  tasksRepository(context.db).create(res.locals.user.id, res.locals.validatedBody).then(toJsonPayload(res));
 
-const getList = (context) => (req, res) =>
-  tasksRepository(context.db)
-    .loadAll(res.locals.user.id)
-    .then((tasks) => {
-      res.json(tasks);
-    });
+const getList = (context) => (req, res) => tasksRepository(context.db).loadAll(res.locals.user.id).then(toJsonPayload(res));
 
 const get = (context) => (req, res) =>
   tasksRepository(context.db)
     .load(res.locals.user.id, res.locals.validatedParams.id)
     .then(throwIfNil(() => new HttpError('Not found', 404)))
-    .then((tasks) => {
-      res.json(tasks);
-    });
+    .then(toJsonPayload(res));
 
 const patch = (context) => (req, res) =>
   tasksRepository(context.db)
