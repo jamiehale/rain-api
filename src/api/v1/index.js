@@ -1,24 +1,13 @@
 import { Router } from 'express';
-
-const get = () => (req, res) => {
-  res.json([
-    { yay: 'hells yes' },
-  ]);
-};
-
-const events = (context) => {
-  const routes = Router();
-
-  routes.get('/', get(context));
-
-  return routes;
-};
+import { authenticated } from '../../middleware/authentication';
+import sessions from './sessions';
+import tasks from './tasks';
 
 export default (context) => {
   const routes = Router();
 
-  routes.use('/events', events(context));
+  routes.use('/sessions', sessions(context));
+  routes.use('/tasks', authenticated(context), tasks(context));
 
   return routes;
 };
-

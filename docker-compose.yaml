@@ -15,8 +15,10 @@ services:
       DB_USER: rain_api
       DB_PASSWORD: rain
       DB_DATABASE: rain
+    depends_on:
+      - db
   db:
-    image: postgres:13
+    image: postgres:14
     container_name: db
     environment:
       POSTGRES_PASSWORD: rain

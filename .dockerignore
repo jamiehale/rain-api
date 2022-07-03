@@ -1,0 +1,12 @@
+.dockerignore
+.env
+.eslintrc.js
+.git
+.gitignore
+Dockerfile
+Dockerfile.migrate
+db
+docker-compose.yaml
+etc
+node_modules
+var

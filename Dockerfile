@@ -1,14 +1,14 @@
-FROM node:14
+FROM node:18
 
-RUN mkdir -p /usr/src/app
+RUN mkdir -p /usr/src/app && chown node:node /usr/src/app
 WORKDIR /usr/src/app
+USER node:node
 
-ADD package.json yarn.lock /usr/src/app
+COPY package.json yarn.lock /usr/src/app/
 RUN yarn install --frozen-lockfile
 
-ADD . /usr/src/app
+COPY . /usr/src/app
 
 EXPOSE 8080
 
 CMD ["yarn", "start"]
-
