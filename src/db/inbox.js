@@ -1,75 +1,50 @@
 import * as R from 'ramda';
 import { whenNotNil } from '../util/fp';
 import { evolveModel } from '../util/model';
+import { ordered, filtered } from './util';
 
 const toInboxItem = {
   id: R.prop('id'),
   name: R.prop('name'),
   description: R.prop('description'),
   userId: R.prop('user_id'),
+  status: R.prop('status'),
   createdAt: R.prop('created_at'),
   updatedAt: R.prop('updated_at'),
 };
 
-const toInboxRecord = {
+const toInboxItemRecord = {
   id: R.prop('id'),
   name: R.prop('name'),
   description: R.prop('description'),
   user_id: R.prop('userId'),
+  status: R.prop('status'),
   created_at: R.prop('createdAt'),
   updated_at: R.prop('updatedAt'),
 };
 
-const toNewInboxRecord = R.pick(['name', 'description'], toInboxRecord);
+const toNewInboxRecord = R.pick(['name', 'description'], toInboxItemRecord);
 
-const toUpdatedInboxRecord = R.pick(['name', 'description'], toInboxRecord);
+const toUpdatedInboxRecord = R.pick(['name', 'description', 'status'], toInboxItemRecord);
 
-const toInboxOrder = R.omit(['user_id'], toInboxRecord);
+const toInboxOrder = R.omit(['user_id'], toInboxItemRecord);
 
 const load = (db) => (userId, id) =>
-  db('inbox')
+  db('inbox_items')
     .where('user_id', userId)
     .andWhere('id', id)
     .first()
     .then(whenNotNil(evolveModel(toInboxItem)));
 
-const stripNilValues = R.compose(
-  R.fromPairs,
-  R.filter((a) => !R.isNil(a[1])),
-  R.toPairs,
-);
-
-const ordered = (desc, evolution, qb) => {
-  if (desc) {
-    if (R.type(desc) === 'Array') {
-      return qb.orderBy(
-        R.reduce(
-          (acc, column) => {
-            if (R.type(column) === 'String') {
-              return [...acc, column];
-            } else {
-              return [...acc, ...stripNilValues(evolveModel(evolution, { [column.column]: R.propOr('asc', 'order', column) }))];
-            }
-          },
-          [],
-          desc,
-        ),
-      );
-    } else if (R.type(desc) === 'Object') {
-      return qb.orderBy([{ ...stripNilValues(evolveModel(evolution, { [desc.column]: R.propOr('asc', 'order', desc.column) })) }]);
-    } else {
-      return qb.orderBy([stripNilValues(evolveModel(evolution, { [desc]: 'asc' }))]);
-    }
-  } else {
-    return qb;
-  }
-};
-
-const loadAll = (db) => (userId, options) =>
-  ordered(options.order, toInboxOrder, db('inbox').where('user_id', userId)).then(R.map(evolveModel(toInboxItem)));
+const loadAll =
+  (db) =>
+  (userId, options = {}) =>
+    ordered(options.order, toInboxOrder, filtered(options.filter, toInboxOrder, db('inbox_items').where('user_id', userId))).then(
+      R.map(evolveModel(toInboxItem)),
+    );
 
 const create = (db) => (userId, fields) =>
-  db('inbox')
+  db('inbox_items')
     .insert({
       ...evolveModel(toNewInboxRecord, fields),
       user_id: userId,
@@ -79,7 +54,7 @@ const create = (db) => (userId, fields) =>
     .then(evolveModel(toInboxItem));
 
 const update = (db) => (userId, id, fields) =>
-  db('inbox')
+  db('inbox_items')
     .where('user_id', userId)
     .andWhere('id', id)
     .update({
@@ -90,7 +65,7 @@ const update = (db) => (userId, id, fields) =>
     .then(R.head)
     .then(whenNotNil(evolveModel(toInboxItem)));
 
-export const inboxRepository = (db) => ({
+export const inboxItemsRepository = (db) => ({
   load: load(db),
   loadAll: loadAll(db),
   create: create(db),

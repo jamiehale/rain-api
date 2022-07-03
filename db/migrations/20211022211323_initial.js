@@ -44,11 +44,12 @@ export const up = (knex) =>
       table.index('user_id');
     })
 
-    .createTable('inbox', (table) => {
+    .createTable('inbox_items', (table) => {
       table.uuid('id').primary().defaultTo(knex.raw('uuid_generate_v4()'));
       table.string('name').notNullable();
       table.string('description');
       table.uuid('user_id').notNullable();
+      table.string('status').notNullable().defaultTo('pending');
       table.timestamp('created_at').defaultTo(knex.fn.now());
       table.timestamp('updated_at').defaultTo(knex.fn.now());
 
@@ -63,17 +64,19 @@ export const up = (knex) =>
       table.uuid('parent_id');
       table.uuid('user_id').notNullable();
       table.boolean('done').notNullable().defaultTo(false);
+      table.uuid('inbox_item_id');
       table.timestamp('created_at').defaultTo(knex.fn.now());
       table.timestamp('updated_at').defaultTo(knex.fn.now());
 
       table.foreign('parent_id').references('tasks.id');
       table.foreign('user_id').references('users.id');
+      table.foreign('inbox_item_id').references('inbox_items.id');
     });
 
 export const down = (knex) =>
   knex.schema
     .dropTableIfExists('tasks')
-    .dropTableIfExists('inbox')
+    .dropTableIfExists('inbox_items')
     .dropTableIfExists('refresh_tokens')
     .dropTableIfExists('local_accounts')
     .dropTableIfExists('user_apps')

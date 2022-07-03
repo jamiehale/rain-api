@@ -1,14 +1,16 @@
 import { Router } from 'express';
 import Joi from 'joi';
-import { inboxRepository } from '../../db/inbox';
+import { inboxItemsRepository } from '../../db/inbox';
 import { validated } from '../../middleware/validation';
 import { toJsonPayload } from '../../util/express';
 
 const post = (context) => (req, res) =>
-  inboxRepository(context.db).create(res.locals.user.id, res.locals.validatedBody).then(toJsonPayload(res));
+  inboxItemsRepository(context.db).create(res.locals.user.id, res.locals.validatedBody).then(toJsonPayload(res));
 
 const getList = (context) => (req, res) =>
-  inboxRepository(context.db).loadAll(res.locals.user.id, { order: 'createdAt' }).then(toJsonPayload(res));
+  inboxItemsRepository(context.db)
+    .loadAll(res.locals.user.id, { order: 'createdAt', filter: { status: 'pending' } })
+    .then(toJsonPayload(res));
 
 const newInboxItemSchema = Joi.object({
   name: Joi.string().required(),

@@ -30,3 +30,9 @@ export const passThrough = R.curry((f, value) => {
 });
 
 export const capitalize = (s) => R.join('', [R.toUpper(R.head(s)), R.tail(s)]);
+
+export const stripNilValues = R.compose(
+  R.fromPairs,
+  R.filter((a) => !R.isNil(a[1])),
+  R.toPairs,
+);

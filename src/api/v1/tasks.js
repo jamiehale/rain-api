@@ -1,6 +1,8 @@
 import { Router } from 'express';
 import Joi from 'joi';
 import * as R from 'ramda';
+import { withTransaction } from '../../db/atomic';
+import { inboxItemsRepository } from '../../db/inbox';
 import { tasksRepository } from '../../db/tasks';
 import { authorized } from '../../middleware/authorization';
 import { validated } from '../../middleware/validation';
@@ -8,8 +10,21 @@ import { HttpError } from '../../util/errors';
 import { toJsonPayload } from '../../util/express';
 import { throwIfNil } from '../../util/fp';
 
+const updateInboxItem = (txn, userId, inboxItemId, status) => {
+  if (inboxItemId) {
+    return inboxItemsRepository(txn)
+      .update(userId, inboxItemId, { status })
+      .then(throwIfNil(() => new HttpError('Inbox item not found', 400)));
+  }
+  return Promise.resolve();
+};
+
 const post = (context) => (req, res) =>
-  tasksRepository(context.db).create(res.locals.user.id, res.locals.validatedBody).then(toJsonPayload(res));
+  withTransaction(context.db, (txn) =>
+    updateInboxItem(txn, res.locals.user.id, res.locals.validatedBody.inboxItemId, 'processed')
+      .then(() => tasksRepository(txn).create(res.locals.user.id, res.locals.validatedBody))
+      .then(toJsonPayload(res)),
+  );
 
 const getList = (context) => (req, res) => tasksRepository(context.db).loadAll(res.locals.user.id).then(toJsonPayload(res));
 
@@ -30,6 +45,7 @@ const newTaskSchema = Joi.object({
   description: Joi.string(),
   due: Joi.date(),
   parentId: Joi.string(),
+  inboxItemId: Joi.string(),
 });
 
 const updatedTaskSchema = Joi.object({
