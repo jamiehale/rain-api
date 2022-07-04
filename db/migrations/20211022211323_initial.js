@@ -84,10 +84,24 @@ export const up = (knex) =>
 
       table.foreign('user_id').references('users.id');
       table.foreign('inbox_item_id').references('inbox_items.id');
+    })
+
+    .createTable('bookmarks', (table) => {
+      table.uuid('id').primary().defaultTo(knex.raw('uuid_generate_v4()'));
+      table.string('url').notNullable();
+      table.string('note');
+      table.uuid('user_id').notNullable();
+      table.uuid('inbox_item_id');
+      table.timestamp('created_at').defaultTo(knex.fn.now());
+      table.timestamp('updated_at').defaultTo(knex.fn.now());
+
+      table.foreign('user_id').references('users.id');
+      table.foreign('inbox_item_id').references('inbox_items.id');
     });
 
 export const down = (knex) =>
   knex.schema
+    .dropTableIfExists('bookmarks')
     .dropTableIfExists('notes')
     .dropTableIfExists('tasks')
     .dropTableIfExists('inbox_items')
