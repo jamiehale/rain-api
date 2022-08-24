@@ -1,13 +1,13 @@
 import { Router } from 'express';
 import Joi from 'joi';
 import * as R from 'ramda';
-import { withTransaction } from '../../db/atomic';
-import { bookmarksRepository } from '../../db/bookmarks';
-import { inboxItemsRepository } from '../../db/inbox';
-import { authorized } from '../../middleware/authorization';
-import { validated } from '../../middleware/validation';
-import { toJsonPayload } from '../../util/express';
-import { throwIfNil } from '../../util/fp';
+import { withTransaction } from '../../../db/atomic';
+import { bookmarksRepository } from '../../../db/bookmarks';
+import { inboxItemsRepository } from '../../../db/inbox';
+import { authorized } from '../../../middleware/authorization';
+import { validated } from '../../../middleware/validation';
+import { toJsonPayload } from '../../../util/express';
+import { throwIfNil } from '../../../util/fp';
 
 const updateInboxItem = (txn, userId, inboxItemId, status) => {
   if (inboxItemId) {

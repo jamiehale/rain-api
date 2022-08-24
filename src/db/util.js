@@ -45,9 +45,39 @@ export const ordered = (desc, evolution, qb) => {
   }
 };
 
+const evolveFieldName = R.curry((evolution, field) => R.keys(evolveModel(evolution, { [field]: null }))[0]);
+
 export const filtered = (desc, evolution, qb) => {
   if (desc) {
-    return qb.where(stripNilValues(evolveModel(evolution, desc)));
+    const { plain, lte } = R.reduce(
+      (acc, [field, value]) => {
+        if (R.type(value) === 'Object') {
+          if (value.lte) {
+            return {
+              ...acc,
+              lte: [...acc.lte, [field, value]],
+            };
+          }
+          throw 'Nope';
+        }
+        return {
+          ...acc,
+          plain: {
+            ...acc.plain,
+            [field]: value,
+          },
+        };
+      },
+      { plain: {}, lte: [] },
+      R.toPairs(desc),
+    );
+    for (const filter of lte) {
+      const [field, value] = filter;
+      qb = qb.where(evolveFieldName(evolution, field), '<=', value.lte);
+    }
+    qb = qb.where(stripNilValues(evolveModel(evolution, plain)));
+    console.log(qb.toSQL());
+    return qb;
   }
   return qb;
 };

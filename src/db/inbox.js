@@ -65,9 +65,19 @@ const update = (db) => (userId, id, fields) =>
     .then(R.head)
     .then(whenNotNil(evolveModel(toInboxItem)));
 
+const del = (db) => (userId, id) =>
+  db('inbox_items')
+    .where('user_id', userId)
+    .andWhere('id', id)
+    .delete()
+    .returning('*')
+    .then(R.head)
+    .then(whenNotNil(evolveModel(toInboxItem)));
+
 export const inboxItemsRepository = (db) => ({
   load: load(db),
   loadAll: loadAll(db),
   create: create(db),
   update: update(db),
+  delete: del(db),
 });

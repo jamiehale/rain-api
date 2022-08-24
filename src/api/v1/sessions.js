@@ -8,7 +8,7 @@ import { isPasswordValid } from '../../util/password';
 import { toJsonPayload } from '../../util/express';
 import { generateAuthPackage } from '../../util/auth-package';
 
-const post = (context) => (req, res) =>
+const post = (context) => (req, res, next) =>
   localAccountsRepository(context.db)
     .loadByUsername(res.locals.validatedBody.username)
     .then(throwIfNil(() => new HttpError('Invalid username/password combination', 401)))
@@ -16,7 +16,10 @@ const post = (context) => (req, res) =>
       throwUnless(isPasswordValid(res.locals.validatedBody.password), () => new HttpError('Invalid username/password combination', 401)),
     )
     .then(generateAuthPackage(context))
-    .then(toJsonPayload(res));
+    .then(toJsonPayload(res))
+    .catch((err) => {
+      next(err);
+    });
 
 const newSessionSchema = Joi.object({
   username: Joi.string().required(),

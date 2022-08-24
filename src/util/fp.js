@@ -16,13 +16,9 @@ export const throwUnless = R.curry((pred, createErrorFn, value) => throwIf(R.com
 
 export const throwIfNil = throwIf(R.isNil);
 
-export const whenNotNil = R.curry((whenNotNilFn, value) => {
-  if (R.isNil(value)) {
-    return undefined;
-  }
+export const notNil = R.complement(R.isNil);
 
-  return whenNotNilFn(value);
-});
+export const whenNotNil = R.when(notNil);
 
 export const passThrough = R.curry((f, value) => {
   f(value);
