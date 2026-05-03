@@ -4,8 +4,7 @@ import * as R from 'ramda';
 import { withTransaction } from '../../../db/atomic';
 import { inboxItemsRepository } from '../../../db/inbox';
 import { notesRepository } from '../../../db/notes';
-import { authorized } from '../../../middleware/authorization';
-import { validated } from '../../../middleware/validation';
+import { HttpError } from '../../../util/errors';
 import { toJsonPayload } from '../../../util/express';
 import { throwIfNil } from '../../../util/fp';
 
@@ -13,32 +12,36 @@ const updateInboxItem = (txn, userId, inboxItemId, status) => {
   if (inboxItemId) {
     return inboxItemsRepository(txn)
       .update(userId, inboxItemId, { status })
-      .then(throwIfNil(() => new HttpError('Inbox item not found', 400)));
+      .then(throwIfNil(() => new HttpError('Note not found', 400)));
   }
   return Promise.resolve();
 };
 
-const post = (context) => (req, res) =>
-  withTransaction(context.db, (txn) =>
-    updateInboxItem(txn, res.locals.userId, res.locals.validatedBody.inboxItemId, 'processed')
-      .then(() => notesRepository(txn).create(res.locals.userId, res.locals.validatedBody))
-      .then(toJsonPayload(res)),
-  );
+const post =
+  (context) =>
+  ({ userId, inboxItemId, ...fields }) =>
+    withTransaction(context.db, (txn) =>
+      updateInboxItem(txn, userId, inboxItemId, 'processed').then(() => notesRepository(txn).create(userId, { inboxItemId, ...fields })),
+    );
 
-const getList = (context) => (req, res) =>
-  notesRepository(context.db).loadAll(res.locals.userId, { order: 'createdAt' }).then(toJsonPayload(res));
+const getList =
+  (context) =>
+  ({ userId }) =>
+    notesRepository(context.db).loadAll(userId, { order: 'createdAt' });
 
-const get = (context) => (req, res) =>
-  notesRepository(context.db)
-    .load(res.locals.userId, res.locals.validatedParams.id)
-    .then(throwIfNil(() => new HttpError('Not found', 404)))
-    .then(toJsonPayload(res));
+const get =
+  (context) =>
+  ({ userId, noteId }) =>
+    notesRepository(context.db)
+      .load(userId, noteId)
+      .then(throwIfNil(() => new HttpError('Not found', 404)));
 
-const patch = (context) => (req, res) =>
-  notesRepository(context.db)
-    .update(res.locals.userId, res.locals.validatedParams.id, res.locals.validatedBody)
-    .then(throwIfNil(() => new HttpError('Not found', 404)))
-    .then(toJsonPayload(res));
+const patch =
+  (context) =>
+  ({ userId, noteId, ...fields }) =>
+    notesRepository(context.db)
+      .update(userId, noteId, fields)
+      .then(throwIfNil(() => new HttpError('Not found', 404)));
 
 const newNoteSchema = Joi.object({
   name: Joi.string().required(),
@@ -55,32 +58,56 @@ const noteIdSchema = Joi.object({
   id: Joi.string(),
 });
 
-const noteReadableBy = (noteIdFn) => (context, req, res) =>
-  notesRepository(context.db).load(res.locals.userId, noteIdFn(req, res)).then(R.complement(R.isNil));
+const extractUser = (req, res) => ({
+  userId: res.locals.userId,
+});
+
+const extract = (schema, o) => {
+  const { error, value } = schema.options({ allowUnknown: true, stripUnknown: true }).validate(o);
+  if (error) {
+    throw new Error(error, 400);
+  }
+  return value;
+};
+
+const extractParams = (schema) => (req) => extract(schema, req.params);
+
+const extractBody = (schema) => (req) => extract(schema, req.body);
+
+// const extractQuery = (schema) => (req) => extract(schema, req.query);
+
+const something = (middlewares, fn) => (req, res) => {
+  fn(R.reduce((acc, middleware) => ({ ...acc, ...middleware(req, res, acc) }), {}, middlewares)).then(toJsonPayload(res));
+};
+
+const authorized = (isAuthorizedFn) => (req, res, props) => {
+  if (!isAuthorizedFn(props)) {
+    throw new HttpError('Not found', 404);
+  }
+
+  return {};
+};
+
+const canAccessNote =
+  (context) =>
+  ({ userId, noteId }) =>
+    notesRepository(context.db).load(userId, noteId).then(R.complement(R.isNil));
 
 export default (context) => {
   const routes = Router();
 
-  routes.post('/', validated(newNoteSchema), post(context));
-  routes.get('/', getList(context));
-  routes.get(
-    '/:id',
-    validated(noteIdSchema, 'params'),
-    authorized(
-      context,
-      noteReadableBy((req, res) => res.locals.validatedParams.id),
-    ),
-    get(context),
-  );
+  routes.post('/', something([extractUser, extractBody(newNoteSchema)], post(context)));
+
+  routes.get('/', something([extractUser], getList(context)));
+
+  routes.get('/:noteId', something([extractUser, extractParams(noteIdSchema), authorized(canAccessNote(context))], get(context)));
+
   routes.patch(
-    '/:id',
-    validated(noteIdSchema, 'params'),
-    validated(updatedNoteSchema),
-    authorized(
-      context,
-      noteReadableBy((req, res) => res.locals.validatedParams.id),
+    '/:noteId',
+    something(
+      [extractUser, extractParams(noteIdSchema), authorized(canAccessNote(context)), extractBody(updatedNoteSchema)],
+      patch(context),
     ),
-    patch(context),
   );
 
   return routes;
